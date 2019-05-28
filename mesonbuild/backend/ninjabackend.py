@@ -20,13 +20,7 @@ import subprocess
 from collections import OrderedDict
 import itertools
 from pathlib import PurePath, Path
-from functools import partial, lru_cache
-
-try:
-    from tqdm import tqdm as _tqdm
-    tqdm = partial(_tqdm, leave=False, ncols=100)
-except ImportError:
-    tqdm = lambda x, **kwargs: x
+from functools import lru_cache
 
 from . import backends
 from .. import modules
@@ -38,7 +32,7 @@ from .. import compilers
 from ..compilers import CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MachineChoice, MesonException, OrderedSet, LibType
-from ..mesonlib import get_compiler_for_source, has_path_sep
+from ..mesonlib import tqdm, get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 

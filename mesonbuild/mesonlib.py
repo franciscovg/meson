@@ -21,7 +21,7 @@ import time
 import platform, subprocess, operator, os, shutil, re
 import collections
 from enum import Enum
-from functools import lru_cache
+from functools import partial, lru_cache
 import typing
 
 from mesonbuild import mlog
@@ -1391,3 +1391,58 @@ class LibType(Enum):
     STATIC = 1
     PREFER_SHARED = 2
     PREFER_STATIC = 3
+
+
+class ProgressBar:
+    """Wrapper class for tqdm"""
+    def __init__(self, iterable=None, total=None, bar_type=None, desc=None):
+        if iterable is not None:
+            self.iterable = iter(iterable)
+            return
+        self.total = total
+        self.done = 0
+        self.printed_dots = 0
+        if self.total and bar_type == 'download':
+            print('Download size:', self.total)
+        if desc:
+            print('{}: '.format(desc), end='')
+
+    # Pretend to be an iterator when called as one and don't print any
+    # progress
+    def __iter__(self):
+        return self.iterable
+
+    def __next__(self):
+        return next(self.iterable)
+
+    def print_dot(self):
+        print('.', end='')
+        sys.stdout.flush()
+        self.printed_dots += 1
+
+    def update(self, progress):
+        self.done += progress
+        if not self.total:
+            # Just print one dot per call if we don't have a total length
+            self.print_dot()
+            return
+        ratio = int(self.done / self.total * 10)
+        while self.printed_dots < ratio:
+            self.print_dot()
+
+    def close(self):
+        print('')
+
+try:
+    raise ImportError
+    from tqdm import tqdm as _tqdm
+
+    def tqdm(*args, bar_type=None, **kwargs):
+        partial_tqdm = partial(_tqdm, ncols=100)
+        if bar_type == 'download':
+            kwargs.update({'unit': 'bytes', 'leave': True})
+        else:
+            kwargs.update({'leave': False})
+        return partial_tqdm(*args, **kwargs)
+except ImportError:
+    tqdm = ProgressBar
